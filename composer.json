@@ -1,0 +1,40 @@
+{
+    "require-dev": {
+        "squizlabs/php_codesniffer": "2.7.0",
+        "jakoch/phantomjs-installer": "2.1.1-p07",
+        "codeception/codeception": "2.2.6"
+    },
+    "autoload": {
+        "classmap": [
+        ]
+    },
+    "autoload-dev": {
+        "classmap": [
+        ]
+    },
+    "config": {
+        "vendor-dir": "vendor",
+        "preferred-install": "dist"
+    },
+    "scripts": {
+        "pre-install-cmd": [
+            "composer clearcache"
+        ],
+        "pre-update-cmd": [
+            "composer clearcache"
+        ],
+        "post-install-cmd": [
+            "PhantomInstaller\\Installer::installPhantomJS",
+            "composer dumpautoload -o"
+        ],
+        "post-update-cmd": [
+            "PhantomInstaller\\Installer::installPhantomJS",
+            "composer dumpautoload -o"
+        ]
+    },
+    "extra": {
+        "jakoch/phantomjs-installer": {
+            "cdnurl": "https://github.com/Medium/phantomjs/"
+        }
+    }
+}

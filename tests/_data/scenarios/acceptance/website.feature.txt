@@ -1,0 +1,12 @@
+Feature: website
+  In order to browse pages
+  As a visitor
+  I want to switch between pages via navigation menu
+
+  Scenario: go to homepage
+    Given I have navigation menu
+    When I try to go to homepage
+    And homepage menu is available
+    Then I click homepage menu
+    And I see the page is changed to
+    

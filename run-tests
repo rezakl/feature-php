@@ -1,0 +1,60 @@
+#!/bin/sh
+export VENDOR_BINDIR=$(pwd)/vendor/bin
+if [ -e $VENDOR_BINDIR ]; then export PATH=$PATH:$VENDOR_BINDIR; fi
+if [ -z $(which php) ]; then echo "ERROR: Cannot find PHP!"; exit -1; fi
+if [ -z $(which composer) ]; then echo "ERROR: Cannot find PHP Composer!"; exit -1; fi
+if [ -z $(which codecept) ]; then echo "ERROR: Cannot find Codeception!"; exit -1; fi
+if [ -z $(which phantomjs) ]; then echo "ERROR: Cannot find PhantomJS!"; exit -1; fi
+if [ -z $(which phpcs) ]; then echo "ERROR: Cannot find PHP Code Sniffer!"; exit -1; fi
+if [ -z $(which phpcbf) ]; then echo "ERROR: Cannot find PHP Code Beautifier!"; exit -1; fi
+
+case $1 in
+    phpcs)
+        if [ -z $2 ]; then echo "\n!! Please specify folder or file to analyze !!"; exit -2; fi
+        shift 1
+        echo "\n* Checking code for PSR-2 coding style standard..."
+        phpcs -n --standard=PSR2 --bootstrap=bootstrap/autoload.php \
+            --exclude=PSR1.Classes.ClassDeclaration,PSR2.Methods.MethodDeclaration \
+            --extensions=php $(pwd)/$@ && echo "\nPSR-2 OK!"
+        exit 0
+        ;;
+    phpcbf)
+        if [ -z $2 ]; then echo "\n!! Please specify folder or file to fix !!"; exit -2; fi
+        shift 1
+        echo "\n* Fixing code for PSR-2 coding style standard..."
+        phpcbf --standard=PSR2 --bootstrap=bootstrap/autoload.php \
+            --extensions=php $(pwd)/$@
+        exit 0
+        ;;
+    coverage)
+        touch coverage.lock
+        ;;
+esac
+
+echo "\n* Starting web server and web driver..."
+export PHP_PORT=$(php -r "echo rand(25000, 65000);")
+export PHANTOMJS_PORT=$((PHP_PORT+1))
+nohup php -S 127.0.0.1:$PHP_PORT $(pwd)/routing.php > /dev/null & PHP_PID=$!
+nohup phantomjs --webdriver=$PHANTOMJS_PORT > /dev/null & PHANTOMJS_PID=$!
+ps -p $PHP_PID $PHANTOMJS_PID | tail -n 2
+sleep 1
+
+echo "\n* Running tests..."
+rm -rf tests/_output/*
+
+if [ -e coverage.lock ]; then
+    (rm -f coverage.lock && codecept run --coverage --coverage-xml --coverage-html) || touch error.lock
+elif [ -z $1 ]; then
+    codecept run || touch error.lock
+else
+    codecept run $@ || touch error.lock
+fi
+
+kill -9 $PHP_PID $PHANTOMJS_PID
+unset PHP_PORT
+unset PHANTOMJS_PORT
+if [ -e error.lock ]; then rm -f error.lock && exit -3; fi
+
+# run these on deployment
+#php composer.phar install --no-dev
+#php composer.phar dumpautoload -o
